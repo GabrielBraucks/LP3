@@ -3,71 +3,79 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "primereact/button";
 import { Card } from "primereact/card";
 import { Divider } from "primereact/divider";
-import { InputNumber } from "primereact/inputnumber";
+import { Dropdown } from "primereact/dropdown";
+import { InputMask } from "primereact/inputmask";
 import { Toast } from "primereact/toast";
 import ContextoUsuário from "../../contextos/contexto-usuário";
-import { serviçoCadastrarLocador, serviçoBuscarLocador, serviçoAtualizarLocador }
-    from "../../serviços/serviços-locador";
+import { TELEFONE_MÁSCARA } from "../../utilitários/máscaras";
+import { serviçoCadastrarLocatário, serviçoAtualizarLocatário, serviçoBuscarLocatário }
+    from "../../serviços/serviços-locatário";
 import mostrarToast from "../../utilitários/mostrar-toast";
 import { MostrarMensagemErro, checarListaVazia, validarCamposObrigatórios }
     from "../../utilitários/validações";
-
 import {
-    estilizarBotão, estilizarBotãoRetornar, estilizarCard, estilizarDivCampo, estilizarDivider,
-    estilizarFlex, estilizarInlineFlex, estilizarInputNumber, estilizarLabel
-}
-    from "../../utilitários/estilos";
+    TAMANHOS, estilizarBotão, estilizarBotãoRetornar, estilizarCard, estilizarDivCampo,
+    estilizarDivider, estilizarDropdown, estilizarFlex, estilizarInlineFlex, estilizarInputMask,
+    estilizarLabel
+} from "../../utilitários/estilos";
 
-export default function CadastrarLocador() {
+export default function CadastrarLocatário() {
     const referênciaToast = useRef(null);
     const { usuárioLogado, setUsuárioLogado } = useContext(ContextoUsuário);
-    const [dados, setDados] = useState({ anos_experiência: "" });
+    const [dados, setDados] = useState({
+        renda_mensal: "",
+        telefone: ""
+    });
     const [erros, setErros] = useState({});
     const [cpfExistente, setCpfExistente] = useState(false);
     const navegar = useNavigate();
+    const opçõesRendaMensal = [
+        { label: "Até 2 salários", value: "até_2_salarios" },
+        { label: "De 2 a 5 salários", value: "de_2_a_5_salarios" },
+        { label: "Acima de 5 salários", value: "acima_5_salarios" }
+    ];
 
     function alterarEstado(event) {
         const chave = event.target.name || event.value;
         const valor = event.target.value;
         setDados({ ...dados, [chave]: valor });
     };
-
     function validarCampos() {
         let errosCamposObrigatórios;
         errosCamposObrigatórios = validarCamposObrigatórios(dados);
         setErros(errosCamposObrigatórios);
         return checarListaVazia(errosCamposObrigatórios);
     };
-
     function títuloFormulário() {
-        if (usuárioLogado?.cadastrado) return "Alterar Locador";
-        else return "Cadastrar Locador";
+        if (usuárioLogado?.cadastrado) return "Alterar Locatário";
+        else return "Cadastrar Locatário";
     };
 
-    async function cadastrarLocador() {
+    async function cadastrarLocatário() {
         if (validarCampos()) {
             try {
-                const response = await serviçoCadastrarLocador({
+                const response = await serviçoCadastrarLocatário({
                     ...dados, usuário_info: usuárioLogado,
-                    anos_experiência: dados.anos_experiência
+                    renda_mensal: dados.renda_mensal,
+                    telefone: dados.telefone
                 });
                 if (response.data)
                     setUsuárioLogado(usuário => ({
                         ...usuário, status: response.data.status,
                         token: response.data.token
                     }));
-                mostrarToast(referênciaToast, "Locador cadastrado com sucesso!", "sucesso");
+                mostrarToast(referênciaToast, "Locatário cadastrado com sucesso!", "sucesso");
             } catch (error) {
                 setCpfExistente(true);
                 mostrarToast(referênciaToast, error.response.data.erro, "erro");
             }
         }
     };
-    async function atualizarLocador() {
+    async function atualizarLocatário() {
         if (validarCampos()) {
             try {
-                const response = await serviçoAtualizarLocador({ ...dados, cpf: usuárioLogado.cpf });
-                if (response) mostrarToast(referênciaToast, "Locador atualizado com sucesso!", "sucesso");
+                const response = await serviçoAtualizarLocatário({ ...dados, cpf: usuárioLogado.cpf });
+                if (response) mostrarToast(referênciaToast, "Locatário atualizado com sucesso!", "sucesso");
             } catch (error) { mostrarToast(referênciaToast, error.response.data.erro, "erro"); }
         }
     };
@@ -75,10 +83,9 @@ export default function CadastrarLocador() {
         if (usuárioLogado?.cadastrado) return "Alterar";
         else return "Cadastrar";
     };
-
     function açãoBotãoSalvar() {
-        if (usuárioLogado?.cadastrado) atualizarLocador();
-        else cadastrarLocador();
+        if (usuárioLogado?.cadastrado) atualizarLocatário();
+        else cadastrarLocatário();
     };
     function redirecionar() {
         if (cpfExistente) {
@@ -89,15 +96,15 @@ export default function CadastrarLocador() {
             navegar("/pagina-inicial");
         }
     };
-
     useEffect(() => {
         let desmontado = false;
-        async function buscarDadosLocador() {
+        async function buscarDadosLocatário() {
             try {
-                const response = await serviçoBuscarLocador(usuárioLogado.cpf);
+                const response = await serviçoBuscarLocatário(usuárioLogado.cpf);
                 if (!desmontado && response.data) {
                     setDados(dados => ({
-                        ...dados, anos_experiência: response.data.anos_experiência
+                        ...dados, renda_mensal: response.data.renda_mensal,
+                        telefone: response.data.telefone
                     }));
                 }
             } catch (error) {
@@ -105,7 +112,7 @@ export default function CadastrarLocador() {
                 if (erro) mostrarToast(referênciaToast, erro, "erro");
             }
         }
-        if (usuárioLogado?.cadastrado) buscarDadosLocador();
+        if (usuárioLogado?.cadastrado) buscarDadosLocatário();
         return () => desmontado = true;
     }, [usuárioLogado?.cadastrado, usuárioLogado.cpf]);
 
@@ -114,14 +121,19 @@ export default function CadastrarLocador() {
             <Toast ref={referênciaToast} onHide={redirecionar} position="bottom-center" />
             <Card title={títuloFormulário()} className={estilizarCard(usuárioLogado.cor_tema)}>
                 <div className={estilizarDivCampo()}>
-                    <label className={estilizarLabel(usuárioLogado.cor_tema)}>
-                        Anos de Experiência:</label>
-                    <InputNumber name="anos_experiência" size={5}
-                        value={dados.anos_experiência}
-                        onValueChange={alterarEstado} mode="decimal"
-                        inputClassName={estilizarInputNumber(erros.anos_experiência,
-                            usuárioLogado.cor_tema)} />
-                    <MostrarMensagemErro mensagem={erros.anos_experiência} />
+                    <label className={estilizarLabel(usuárioLogado.cor_tema)}>Renda Mensal*:</label>
+                    <Dropdown name="renda_mensal" className={estilizarDropdown(erros.renda_mensal, usuárioLogado.cor_tema)}
+                        value={dados.renda_mensal} options={opçõesRendaMensal} onChange={alterarEstado}
+
+                        placeholder="-- Selecione --" />
+                    <MostrarMensagemErro mensagem={erros.renda_mensal} />
+                </div>
+                <div className={estilizarDivCampo()}>
+                    <label className={estilizarLabel(usuárioLogado.cor_tema)}>Telefone*:</label>
+                    <InputMask name="telefone" autoClear size={TAMANHOS.TELEFONE} onChange={alterarEstado}
+                        className={estilizarInputMask(erros.telefone, usuárioLogado.cor_tema)}
+                        mask={TELEFONE_MÁSCARA} value={dados.telefone} />
+                    <MostrarMensagemErro mensagem={erros.telefone} />
                 </div>
                 <Divider className={estilizarDivider(dados.cor_tema)} />
                 <div className={estilizarInlineFlex()}>
@@ -131,4 +143,4 @@ export default function CadastrarLocador() {
             </Card>
         </div>
     );
-};        
+};
